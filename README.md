@@ -19,7 +19,7 @@ Stewart platform.
 
 # Compiling
 ## Setup
-- Dependent upon [GNU Scientific Libary (GSL)](https://www.gnu.org/software/gsl/doc/html/index.html) to perform matrix inversion. On my system (Linux Mint), this is provided by the packages `libgsl-dev`, `libgsl23`, and `libgslcblas0`.
+- Dependent upon LAPACKE (`liblapacke-dev` on my Linux Mint system) package to perform matrix pseudo-inversion.
 - system? gcc, make, gl, glew..
 - Includes a copy of MuJoCo 2.10 that it references to compile. 
 ## Compile

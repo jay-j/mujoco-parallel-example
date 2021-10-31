@@ -11,8 +11,7 @@
 //#include "math.h"
 #include "assert.h"
 
-#include <gsl/gsl_matrix_double.h>
-#include <gsl/gsl_linalg.h>
+#include "lapacke.h"
 
 // MuJoCo data structures
 mjModel* m = NULL;                  // MuJoCo model
@@ -35,6 +34,53 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods){
         simulation_exit = 1;
     }
 
+}
+
+
+// compute matrix pseudo-inverse using the LAPACK function dgelss
+// http://www.netlib.org/lapack/explore-html/d7/d3b/group__double_g_esolve_gaa6ed601d0622edcecb90de08d7a218ec.html#gaa6ed601d0622edcecb90de08d7a218ec
+// the resulting inverse is stored in the B matrix
+void pseudo_inverse(double* result, double* matrix, int nr, int nc){
+    //int nr = 3; // (m) number of rows of matrix A
+    //int nc = 3; // (n) number of columns of matrix A
+    int nrhs = nc; // number of columns of matrices B and X
+    int lda = nr; // TODO??!
+    int ldb = nr > nc ? nr : nc ;
+
+    // matrix TODO size.. and fill.. and type...]
+    double A[lda*nc];
+    mju_copy(A, matrix, nr*nc);
+
+    double B[ldb*nrhs];
+    // B is the identity matrix of size N
+    for (size_t i=0; i<ldb*nrhs; ++i){
+        B[i] = 0;
+    }
+    for (size_t i=0; i<nc; ++i){
+        B[i*nc + i] = 1;
+    }
+
+    double S[12]; // auto TODO minimum size
+
+    double rcond = -1;
+    int rank;
+
+    int lwork = 128; // TODO WAG a big area, figure it out properly later
+    double work[lwork];
+
+    int matrix_layout = LAPACK_ROW_MAJOR;
+    int info = LAPACKE_dgelss(matrix_layout, nr, nc, nrhs, A, lda, B, ldb, S, rcond, &rank);
+
+    if (info < 0){
+        printf("if INFO = -i, the i-th argument had an illegal value. info = %d\n", info);
+        assert(0);
+    }
+    if (info > 0){
+        printf(" the algorithm for computing the SVD failed to converge; if INFO = i, i off-diagonal elements of an intermediate bidiagonal form did not converge to zero. info = %d\n", info);
+        assert(0);
+    }
+
+    mju_copy(result, B, nr*nc);
 }
 
 
@@ -96,34 +142,12 @@ void controller(const mjModel* m, mjData* d){
     printf("Need to invert this matrix: A * A'\n");
     mju_printMat(AAT, njused, njused);
 
-    // use GSL to invert the matrix TODO eventually need to move memory allocations out of every-timestep code
-    gsl_matrix* matrix1 = gsl_matrix_alloc(njused, njused); // want to invert this
-    gsl_permutation* matrix2 = gsl_permutation_alloc(njused); // a working matrix
-    gsl_matrix* matrix3 = gsl_matrix_alloc(njused, njused); // will store resulting inverted matrix
-
-    // copy matrix to GSL
-    for (size_t i=0; i<njused; ++i){ // rows
-        for (size_t j=0; j<njused; ++j){ // columns
-            gsl_matrix_set(matrix1, i, j, AAT[i*njused + j]);
-        }
-    }
-    
-    // actually do the inversion
-    int s;
-    gsl_linalg_LU_decomp(matrix1, matrix2, &s);
-    gsl_linalg_LU_invert(matrix1, matrix2, matrix3);
-
-    // bring data back into mujoco types
     mjtNum inv_AAT[njused*njused];
-    mju_copy(inv_AAT, matrix3->data, njused*njused);
+
+    pseudo_inverse(inv_AAT, AAT, njused, njused);
+
     printf("Inverted matrix inv_AAT:\n");
     mju_printMat(inv_AAT, njused, njused);
-
-    // cleanup GSLdata
-    gsl_matrix_free(matrix1);
-    gsl_permutation_free(matrix2);
-    gsl_matrix_free(matrix3);
-
 
     // finish calculations of constraint correction matrix
 
