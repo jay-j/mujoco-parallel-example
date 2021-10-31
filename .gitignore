@@ -1,0 +1,6 @@
+*.o
+*.bin
+mesh_stl/
+*.blend
+*.blend1
+MUJOCO_LOG.TXT
