@@ -9,13 +9,17 @@ A parallel mechanism, where the kinematic tree between "ground" and the end effe
 A constrained jacobian which maps from actuator (joint) velocity to end effector (cartesian) velocity, taking into account the equality/connect constraints (which define the parallel mechanism).
 
 ## Approach
-
+0. Use dense jacobian representation and elliptic solver.
+1. Get the unconstrained jacobian for the body with `mj_jac()`.
+2. Get the constraint jacobian `d->efc_J`, limit to rows with at least one nonzero entry (constraint is active in some way).
+3. Follow the formula `x = J * (I - A' * inv(A * A') * A) * v`.
+   - Calculate the transpose manually since it is apparently not done automatically.
+   - Use LAPACKE to calculate the matrix pseudo inverse.
+4. Extract the portion of the jacobian that we are actually interested in, perform coordinate transformations.
+5. Apply the jacobian.
 
 # Example Problem 1
 A 3DOF planar mechanism. The end effector is connected to ground via three legs. Each 3R leg has two passive joints and one actuated joint.
-
-# Example Problem 2
-Stewart platform. 
 
 # Compiling
 ## Setup
