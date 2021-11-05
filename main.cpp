@@ -169,7 +169,7 @@ void controller(const mjModel* m, mjData* d){
 
     // variable to store A * A'
     mjtNum AAT[njused*njused];
-    mju_mulMatMat(AAT, d->efc_J, efc_JT, njused, m->nv, njused);
+    mju_mulMatMat(AAT, efc_J_active, efc_JT, njused, m->nv, njused);
     // printf("Need to invert this matrix: A * A'\n");
     // mju_printMat(AAT, njused, njused);
 
@@ -261,8 +261,8 @@ void controller(const mjModel* m, mjData* d){
 
     // TODO a bunch of relative position error calculating stuff!!!!
     mjtNum state_target[3];
-    state_target[0] = 0.1*cos(0.05*d->time);
-    state_target[1] = 0.1*sin(0.05*d->time);
+    state_target[0] = 0.1*cos(0.2*d->time);
+    state_target[1] = 0.1*sin(0.2*d->time);
     state_target[2] = 0;
 
     mjtNum state_current[3];
@@ -283,7 +283,7 @@ void controller(const mjModel* m, mjData* d){
 
     mjtNum desired_velocity_cart[3];
     mju_sub3(desired_velocity_cart, state_target, state_current); // TODO better error for angles, generic size
-    desired_velocity_cart[2] *= 0.05; // TODO is there a more sensible way to control angular axis proportions? auto based on type
+    desired_velocity_cart[2] *= -0.05; // TODO is there a more sensible way to control angular axis proportions? auto based on type
     printf("Desired Velocity Cart: %lf, %lf, %lf\n", desired_velocity_cart[0], desired_velocity_cart[1], desired_velocity_cart[2]);
 
     mjtNum desired_velocity_joint[actuator_qty];
